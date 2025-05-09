@@ -10,6 +10,7 @@ from googleapiclient.discovery import build
 from datetime import timedelta
 # Importa os para verificar la existencia de archivos
 import os
+from google.auth.exceptions import RefreshError
 
 # Define los permisos necesarios para acceder al calendario de Google
 SCOPES = ['https://www.googleapis.com/auth/calendar.events']
@@ -25,17 +26,15 @@ def obtener_servicio():
 
     # Si no hay credenciales válidas, se realiza el flujo de autenticación
     if not creds or not creds.valid:
-        # Si las credenciales están vencidas pero se pueden refrescar
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())  # Refresca el token
-        else:
-            # Inicia el flujo de autenticación usando un archivo de secretos
+        try:
+            creds.refresh(Request())  # Intenta refrescar el token
+        except RefreshError:
+            print("El token ha expirado o fue revocado. Se iniciará una nueva autenticación.")
             flow = InstalledAppFlow.from_client_secrets_file('asistente/google/credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)  # Ejecuta el servidor local para autenticación
-
-        # Guarda las nuevas credenciales en un archivo para futuras sesiones
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+            creds = flow.run_local_server(port=0)
+            # Guarda las nuevas credenciales en un archivo para futuras sesiones
+            with open('token.json', 'w') as token:
+                token.write(creds.to_json())
 
     # Construye y retorna el servicio de Google Calendar autenticado
     servicio = build('calendar', 'v3', credentials=creds)

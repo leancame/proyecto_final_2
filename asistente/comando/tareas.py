@@ -6,6 +6,7 @@ from asistente.servicios.db import obtener_sesion, Tarea
 from asistente.servicios.google_calendar import crear_evento_google_calendar
 # Importa las clases necesarias para trabajar con fechas y horas
 from datetime import datetime, timedelta
+import re
 
 # Comando para añadir una tarea normal (sin fecha)
 class ComandoTareaNormal(BaseComando):
@@ -68,43 +69,37 @@ class ComandoTareaConcreta(BaseComando):
             self.voz.hablar("No entendí bien la tarea concreta. Por favor, repite.")
 
     def _obtener_fecha_de_comando(self, comando):
-        # Diccionario para convertir los nombres de meses en números
         meses = {
             'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4, 'mayo': 5, 'junio': 6,
-            'julio': 7, 'agosto': 8, 'septiembre': 9, 'octubre': 10, 'noviembre': 11, 'diciembre': 12
+            'julio': 7, 'agosto': 8, 'septiembre': 9, 'octubre': 10,
+            'noviembre': 11, 'diciembre': 12
         }
 
+        comando = comando.lower()
+
         try:
-            comando = comando.lower()  # Convertimos el comando a minúsculas para facilitar la comparación
+            # Manejo de fechas relativas
+            if "pasado mañana" in comando:
+                return datetime.now() + timedelta(days=2)
+            elif "mañana" in comando:
+                return datetime.now() + timedelta(days=1)
+            elif match := re.search(r"en (\d+) día", comando):
+                dias = int(match.group(1))
+                return datetime.now() + timedelta(days=dias)
 
-            # Manejo de fechas relativas como "mañana", "pasado mañana" y "en X días"
-            if "mañana" in comando:
-                fecha_base = datetime.now() + timedelta(days=1)
-            elif "pasado mañana" in comando:
-                fecha_base = datetime.now() + timedelta(days=2)
-            elif "en" in comando and "día" in comando:
-                partes = comando.split("en")[1].strip()
-                dias = int(partes.split()[0])  # Extrae los días del comando
-                fecha_base = datetime.now() + timedelta(days=dias)
-            else:
-                # Si no se menciona una fecha relativa, obtenemos la fecha exacta
-                partes = comando.split("el")[1].strip().split("a las")
-                fecha_texto = partes[0].strip()
-                hora_texto = partes[1].strip() if len(partes) > 1 else ""
-
-                # Extraemos el día, mes y hora
-                dia, mes_texto = fecha_texto.split(" de ")
-                mes = meses[mes_texto.strip()]
-                hora, minuto = map(int, hora_texto.split(":")) if hora_texto else (0, 0)
-
-                año = datetime.now().year
-                fecha_base = datetime(año, mes, int(dia), hora, minuto)
-
-            return fecha_base  # Retorna la fecha base obtenida
+            # Fecha exacta: "el 9 de mayo a las 21:25"
+            match = re.search(r"(\d{1,2}) de (\w+) a las (\d{1,2}):(\d{2})", comando)
+            if match:
+                dia, mes_texto, hora, minuto = match.groups()
+                mes = meses.get(mes_texto)
+                if mes:
+                    año = datetime.now().year
+                    return datetime(año, mes, int(dia), int(hora), int(minuto))
 
         except Exception as e:
             print(f"Error al interpretar la fecha: {e}")
-            return None  # Retorna None si ocurre un error en el proceso de interpretación
+
+        return None
 
 # Comando para listar las tareas pendientes
 class ComandoListarTareas(BaseComando):

@@ -1,7 +1,7 @@
 import requests
 
 class WebUIModel:
-    def __init__(self, url="http://localhost:5000/api/v1/generate"):
+    def __init__(self, url="http://localhost:7860/api/v1/generate"):
         self.url = url
 
     def responder(self, mensaje):

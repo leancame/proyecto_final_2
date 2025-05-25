@@ -15,7 +15,7 @@ modelo_ia = TinyModel()  # O BigModel() o WebUIModel()
 def main():
     voz = Voz()
     buscador = Buscador()
-    modelo_ia = TinyModel()  # Cambiar por TinyModel() o BigModel()
+    modelo_ia = TinyModel()
 
     servicios = {
         'buscador': buscador,
@@ -23,8 +23,23 @@ def main():
     }
 
     asistente = AsistenteVirtual(voz, servicios)
-    asistente.iniciar()
+
+    voz.hablar("Estoy en espera. Di 'activar asistente' para comenzar o 'salir' para cancelar.")
+
+    while True:
+        resultado = voz.escuchar_para_activar()
+
+        if resultado == "activar asistente":
+            voz.hablar("Activando asistente.")
+            asistente.iniciar()
+            break
+
+        elif resultado in ("salir", "cancelar"):
+            voz.hablar("Saliendo. Hasta luego.")
+            break
+
+        elif resultado:
+            voz.hablar("Aún no estoy activado. Di 'activar asistente' si quieres empezar.")
 
 if __name__ == "__main__":
     main()
-

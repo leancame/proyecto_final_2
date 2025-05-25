@@ -1,4 +1,5 @@
 # Importa la librería para sintetizar voz (Text-to-Speech)
+import time
 import pyttsx3
 # Importa la librería para reconocimiento de voz
 import speech_recognition as sr
@@ -44,4 +45,34 @@ class Voz:
             if texto:
                 return texto  # Devuelve el texto si se entendió
         return None  # Devuelve None si no se entendió en los intentos dados
+    
+    def escuchar_para_activar(self, palabras_clave=("activar asistente", "salir", "cancelar"), timeout=20, phrase_time_limit=10):
+        with sr.Microphone() as source:
+            self.reconocedor.adjust_for_ambient_noise(source)
+            print("Escuchando... Di 'activar asistente' para comenzar o 'salir' para salir.")
+
+            while True:
+                try:
+                    audio = self.reconocedor.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
+                    texto = self.reconocedor.recognize_google(audio, language="es-ES").lower()
+
+                    # Sólo imprime y retorna si detecta palabra clave
+                    for palabra in palabras_clave:
+                        if palabra in texto:
+                            print(f"[Detectado palabra clave]: {palabra}")
+                            return palabra
+
+                    # Si no es palabra clave, no hacer nada (ni imprimir)
+
+                except sr.WaitTimeoutError:
+                    pass
+                except sr.UnknownValueError:
+                    pass
+                except sr.RequestError:
+                    print("Error de red en reconocimiento de voz.")
+                    return None
+
+                time.sleep(1)
+
+
 

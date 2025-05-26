@@ -6,3 +6,4 @@ asistente/comando/__pycache__
 asistente/servicios/__pycache__
 asistente/ia/__pycache__
 modelos/
+__pycache__/

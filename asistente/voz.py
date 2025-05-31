@@ -1,78 +1,72 @@
-# Importa la librería para sintetizar voz (Text-to-Speech)
-import time
+# voz.py
 import pyttsx3
-# Importa la librería para reconocimiento de voz
 import speech_recognition as sr
+import threading
+import time
+from kivy.clock import Clock
 
-# Clase que maneja la entrada y salida de voz
-class Voz:
-    def __init__(self):
-        # Inicializa el reconocedor de voz
+class VozSincronizada:
+    def __init__(self, animador=None, imagen_widget=None, frames=None):
         self.reconocedor = sr.Recognizer()
-        # Inicializa el motor de texto a voz
         self.motor_voz = pyttsx3.init()
+        self.animador = animador
+        self.imagen = imagen_widget
+        self.frames = frames or []
+        self.frame_index = 0
+        self.animacion_event = None
+        self._mostrar_mensaje = print
+
+    def set_mensaje_callback(self, callback):
+        self._mostrar_mensaje = callback
 
     def hablar(self, texto):
-        """Convierte el texto en voz y lo reproduce."""
-        self.motor_voz.say(texto)  # Agrega el texto a la cola de reproducción
-        self.motor_voz.runAndWait()  # Reproduce el texto en voz alta
+        self._mostrar_mensaje(f"Asistente: {texto}")
+
+        evento_termino = threading.Event()
+
+        def iniciar_animacion():
+            if self.animador and not self.animacion_event:
+                self.frame_index = 0
+                self.animacion_event = Clock.schedule_interval(self.animador, 0.1)
+
+        def detener_animacion(dt=None):
+            if self.animacion_event:
+                self.animacion_event.cancel()
+                self.animacion_event = None
+            if self.imagen and self.frames:
+                self.imagen.texture = self.frames[0]
+            evento_termino.set()
+
+        Clock.schedule_once(lambda dt: iniciar_animacion())
+
+        def reproducir():
+            self.motor_voz.say(texto)
+            self.motor_voz.runAndWait()
+            time.sleep(0.2)
+            Clock.schedule_once(detener_animacion)
+
+        threading.Thread(target=reproducir).start()
+        evento_termino.wait()
 
     def escuchar(self):
-        """Escucha un comando por el micrófono y lo convierte en texto."""
-        with sr.Microphone() as source:  # Usa el micrófono como fuente de audio
-            print("Escuchando...")
-            # Ajusta para ruido de fondo
+        with sr.Microphone() as source:
+            print("🎙️ Escuchando...")
             self.reconocedor.adjust_for_ambient_noise(source)
-            # Escucha lo que se diga
             audio = self.reconocedor.listen(source)
 
-            try:
-                # Usa Google Speech Recognition para convertir el audio en texto
-                texto = self.reconocedor.recognize_google(audio, language="es-ES")
-                print(f"Lo que dijiste: {texto}")
-                return texto.lower()  # Devuelve el texto en minúsculas
-            except sr.UnknownValueError:
-                # Si no entiende lo que se dijo
-                print("No te entendí, por favor repite.")
-            except sr.RequestError:
-                # Si hay un error con la API de Google
-                print("Error al conectarse al servicio de reconocimiento de voz.")
-    
+        try:
+            texto = self.reconocedor.recognize_google(audio, language="es-ES")
+            print(f"🗣️ Entendido: {texto}")
+            return texto.lower()
+        except sr.UnknownValueError:
+            print("No se entendió.")
+        except sr.RequestError:
+            print("Error en servicio de voz.")
+        return None
+
     def escuchar_con_reintentos(self, intentos=2):
-        """Intenta escuchar varias veces si no entiende a la primera."""
         for _ in range(intentos):
             texto = self.escuchar()
             if texto:
-                return texto  # Devuelve el texto si se entendió
-        return None  # Devuelve None si no se entendió en los intentos dados
-    
-    def escuchar_para_activar(self, palabras_clave=("activar asistente", "salir", "cancelar"), timeout=20, phrase_time_limit=10):
-        with sr.Microphone() as source:
-            self.reconocedor.adjust_for_ambient_noise(source)
-            print("Escuchando... Di 'activar asistente' para comenzar o 'salir' para salir.")
-
-            while True:
-                try:
-                    audio = self.reconocedor.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
-                    texto = self.reconocedor.recognize_google(audio, language="es-ES").lower()
-
-                    # Sólo imprime y retorna si detecta palabra clave
-                    for palabra in palabras_clave:
-                        if palabra in texto:
-                            print(f"[Detectado palabra clave]: {palabra}")
-                            return palabra
-
-                    # Si no es palabra clave, no hacer nada (ni imprimir)
-
-                except sr.WaitTimeoutError:
-                    pass
-                except sr.UnknownValueError:
-                    pass
-                except sr.RequestError:
-                    print("Error de red en reconocimiento de voz.")
-                    return None
-
-                time.sleep(1)
-
-
-
+                return texto
+        return None

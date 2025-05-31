@@ -1,4 +1,5 @@
 # Importa la clase base que deben seguir todos los comandos
+import re
 from .base import BaseComando
 # Importa las bibliotecas necesarias para el procesamiento de audio y video
 import yt_dlp
@@ -32,7 +33,7 @@ class ComandoYouTube(BaseComando):
 
         # Si no se proporcionó una consulta, se le pide al usuario que la ingrese
         if not query:
-            self.voz.hablar("¿Qué deseas buscar en YouTube?")
+            self.voz.hablar_con_gui("¿Qué deseas buscar en YouTube?")
             query = self.voz.escuchar()
 
         # Si no se obtuvo una consulta válida, se avisa al usuario
@@ -41,7 +42,7 @@ class ComandoYouTube(BaseComando):
             return
 
         # Informa al usuario que está buscando el video
-        self.voz.hablar(f"Buscando {query} en YouTube...")
+        self.voz.hablar_con_gui(f"Buscando {query} en YouTube...")
         # Llama a la función para buscar videos en YouTube
         videos = self.buscar_videos(query)
 
@@ -51,11 +52,22 @@ class ComandoYouTube(BaseComando):
             return
 
         # Lee los 3 primeros videos (título, canal y duración) y los presenta al usuario
+        textos = []
         for i, video in enumerate(videos[:3]):
             titulo = video.get('title', 'Sin título')
             canal = video.get('uploader', 'Canal desconocido')
             duracion = self.formatear_duracion(video.get('duration'))
-            self.voz.hablar(f"{i+1}. {titulo}, del canal {canal}, duración {duracion}")
+            textos.append(f"{i+1}. {titulo}, del canal {canal}, duración {duracion}")
+        mensaje = "Aquí tienes tres opciones:\n" + "\n".join(textos)
+
+        # Muestra las opciones en la interfaz si existe el método
+        if hasattr(self.voz, "mostrar_mensaje"):
+            self.voz.mostrar_mensaje(mensaje)
+        # También habla las opciones usando la función que activa la animación
+        if hasattr(self.voz, "hablar_con_gui"):
+            self.voz.hablar_con_gui(mensaje)
+        else:
+            self.voz.hablar(mensaje)
 
         # Bucle hasta que se obtenga una elección válida del usuario
         max_intentos = 3
@@ -64,6 +76,8 @@ class ComandoYouTube(BaseComando):
             self.voz.hablar("Dime el número del video que quieres reproducir.")
             # Escucha el comando del usuario y permite reintentos
             eleccion = self.voz.escuchar_con_reintentos(2)
+
+            print(f"[DEBUG] Elección escuchada: {eleccion}")
 
             # Si no se entendió el comando, pide al usuario que repita
             if eleccion is None:
@@ -181,11 +195,22 @@ class ComandoYouTube(BaseComando):
         return f"{minutos} minutos y {seg} segundos" if minutos else f"{seg} segundos"
 
     def _convertir_a_numero(self, texto):
-        # Convierte un texto con números escritos en palabras a su valor numérico
         texto = texto.strip().lower()
+
+        # ✅ Detecta números explícitos del 1 al 3 en el texto
+        numero_directo = re.search(r"\b([1-3])\b", texto)
+        if numero_directo:
+            return int(numero_directo.group(1))
+
+        # ✅ Palabras reconocibles
         mapa = {
-            "uno": 1, "1": 1, "primer": 1, "primero": 1, "el uno": 1, "número uno": 1,
-            "dos": 2, "2": 2, "segundo": 2, "el dos": 2, "número dos": 2,
-            "tres": 3, "3": 3, "tercero": 3, "el tres": 3, "número tres": 3,
+            "uno": 1, "primer": 1, "primero": 1, "el uno": 1, "número uno": 1, "video uno": 1, "vídeo uno": 1,
+            "dos": 2, "segundo": 2, "el dos": 2, "número dos": 2, "video dos": 2, "vídeo dos": 2,
+            "tres": 3, "tercero": 3, "el tres": 3, "número tres": 3, "video tres": 3, "vídeo tres": 3,
         }
-        return mapa.get(texto, -1)  # Devuelve el número correspondiente o -1 si no
+
+        for clave, valor in mapa.items():
+            if clave in texto:
+                return valor
+
+        return -1  # No se encontró número válido

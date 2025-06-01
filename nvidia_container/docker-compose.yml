@@ -1,0 +1,36 @@
+version: "3.3"
+services:
+  text-generation-webui:
+    build:
+      context: .
+      args:
+        BUILD_EXTENSIONS: llama-cpp
+    command: ["python3", "server.py", "--listen", "--listen-host", "0.0.0.0", "--api", "--model", "Meta-Llama-3-8B-Instruct.Q4_K_M.gguf", "--loader", "llamacpp"]
+    env_file: .env
+    user: "${APP_RUNTIME_UID:-0}:${APP_RUNTIME_GID:-0}"
+    ports:
+      - "${HOST_PORT:-7860}:${CONTAINER_PORT:-7860}"
+      - "${HOST_API_PORT:-5000}:${CONTAINER_API_PORT:-5000}"
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./cache:/home/app/text-generation-webui/cache
+      - ./characters:/home/app/text-generation-webui/characters
+      - ./extensions:/home/app/text-generation-webui/extensions
+      - ./loras:/home/app/text-generation-webui/loras
+      - ./logs:/home/app/text-generation-webui/logs
+      - ./models:/home/app/text-generation-webui/models
+      - ./presets:/home/app/text-generation-webui/presets
+      - ./prompts:/home/app/text-generation-webui/prompts
+      - ./softprompts:/home/app/text-generation-webui/softprompts
+      - ./training:/home/app/text-generation-webui/training
+      - ./cloudflared:/etc/cloudflared
+      - C:/Users/leanc/Desktop/text-generation-webui/models:/home/app/text-generation-webui/models
+      - C:/Users/leanc/Desktop/text-generation-webui/user_data/models:/home/app/text-generation-webui/user_data/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

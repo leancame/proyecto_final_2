@@ -1,18 +1,12 @@
-import requests
+import webbrowser
 
 class WebUIModel:
-    def __init__(self, url="http://localhost:7860/api/v1/generate"):
+    def __init__(self, url="http://localhost:7860"):
         self.url = url
 
-    def responder(self, mensaje):
-        data = {
-            "prompt": mensaje,
-            "max_new_tokens": 150,
-            "temperature": 0.7,
-        }
+    def responder(self, mensaje=None):
         try:
-            respuesta = requests.post(self.url, json=data).json()
-            return respuesta.get("results", [{}])[0].get("text", "").strip()
+            webbrowser.open(self.url)
+            return f"Abriendo la interfaz web"
         except Exception as e:
-            return f"Error al conectar con la IA: {e}"
- 
+            return f"Error al abrir la página: {e}"

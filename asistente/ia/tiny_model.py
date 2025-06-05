@@ -18,11 +18,14 @@ class TinyModel:
                 verbose=False
             )
         except Exception as e:
-            raise RuntimeError(f"Error al cargar el modelo: {e}")
+            print(f"[ERROR al cargar TinyModel]: {e}")
+            self.llm = None
 
     def responder(self, mensaje):
+        if not self.llm:
+            return "El modelo no está disponible. No se pudo cargar correctamente."
+
         try:
-            # Asegurando que el prompt esté más claro
             prompt = (
                 "Eres un asistente de inteligencia artificial. Responde de forma breve, clara y precisa.\n"
                 f"Usuario: {mensaje.strip()}\n"
@@ -32,12 +35,12 @@ class TinyModel:
             output = self.llm(
                 prompt,
                 max_tokens=self.max_tokens,
-                temperature=0.2,  # Menos creativas, más controladas
+                temperature=0.2,
                 top_p=0.30,
                 stop=["\nUsuario:", "\nIA:"]
             )
             texto = output["choices"][0]["text"].strip()
             return texto
         except Exception as e:
-            return f"Error al generar respuesta: {e}"
-
+            print(f"[ERROR al responder con TinyModel]: {e}")
+            return "Ocurrió un error al generar la respuesta con el modelo."

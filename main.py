@@ -11,6 +11,7 @@ from kivy.core.image import Image as CoreImage
 import threading
 import os
 
+from asistente.clima import Clima 
 from asistente.core import AsistenteVirtual
 from asistente.buscador import Buscador
 from asistente.ia.tiny_model import TinyModel
@@ -84,9 +85,12 @@ class AsistenteApp(App):
         voz = VozSincronizada(animador=self.animar_boca, imagen_widget=self.animacion, frames=self.frames)
         voz.set_mensaje_callback(self.mostrar_mensaje)
 
+        API_KEY_METEOBLUE = "Y3PlHAaROkU6qm4d"
+
         servicios = {
             'buscador': Buscador(),
-            'modelo_ia': TinyModel()
+            'modelo_ia': TinyModel(),
+            'clima': Clima(API_KEY_METEOBLUE)
         }
 
         self.asistente = AsistenteVirtual(voz, servicios)

@@ -7,6 +7,8 @@ class WebUIModel:
     def responder(self, mensaje=None):
         try:
             webbrowser.open(self.url)
-            return f"Abriendo la interfaz web"
+            return "Abriendo la interfaz web del modelo de inteligencia artificial."
+        except webbrowser.Error as e:
+            return f"No se pudo abrir el navegador: {e}"
         except Exception as e:
-            return f"Error al abrir la página: {e}"
+            return f"Ocurrió un error inesperado al abrir la página: {e}"

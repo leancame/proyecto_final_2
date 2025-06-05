@@ -1,23 +1,37 @@
-# Importa la clase base que deben seguir todos los comandos
 from .base import BaseComando
 
-# Comando para buscar información en Wikipedia
 class ComandoWikipedia(BaseComando):
     def activar(self, comando):
-        # Activa el comando si se menciona "buscar en wikipedia" en el comando
-        return "buscar en wikipedia" in comando
+        return "buscar en wikipedia" in comando.lower()
 
     def ejecutar(self, comando):
-        # Elimina la parte "buscar en wikipedia" del comando y extrae la consulta de búsqueda
-        query = comando.replace("buscar en wikipedia", "").strip()
-        
-        # Si no se proporciona una consulta, pregunta al usuario qué buscar
-        if not query:
-            self.voz.hablar("¿Qué deseas buscar en Wikipedia?")
-            query = self.voz.escuchar()  # Escucha la respuesta del usuario
+        try:
+            # Elimina la parte del comando que activa esta acción
+            query = comando.replace("buscar en wikipedia", "").strip()
 
-        if query:
-            # Llama al servicio de búsqueda en Wikipedia, pasando la consulta
-            resultado = self.servicios['buscador'].buscar_en_wikipedia(query)
-            # Informa al usuario sobre el resultado de la búsqueda
-            self.voz.hablar(f"En Wikipedia, {resultado}")
+            # Si no hay consulta, pregunta al usuario
+            if not query:
+                self.voz.hablar("¿Qué deseas buscar en Wikipedia?")
+                query = self.voz.escuchar_con_reintentos()  # Mejor con reintentos
+
+            # Cancelación
+            if self._es_cancelacion(query):
+                self.voz.hablar("Operación cancelada.")
+                return
+
+            # Si aún hay texto de búsqueda, proceder
+            if query:
+                resultado = self.servicios['buscador'].buscar_en_wikipedia(query)
+                if resultado:
+                    self.voz.hablar(f"En Wikipedia, {resultado}")
+                else:
+                    self.voz.hablar("No encontré información relevante en Wikipedia.")
+            else:
+                self.voz.hablar("No entendí qué buscar en Wikipedia.")
+        except Exception as e:
+            self.voz.hablar("Ocurrió un error al buscar en Wikipedia.")
+            print(f"[ERROR en ComandoWikipedia]: {e}")
+
+    def _es_cancelacion(self, texto):
+        texto = texto.strip().lower()
+        return texto in ["cancelar", "salir", "detener", "parar", "terminar", "nada", "ninguna"]

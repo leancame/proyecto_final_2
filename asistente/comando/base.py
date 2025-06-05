@@ -17,3 +17,7 @@ class BaseComando:
     def detener(self):
         """Este método es opcional. Permite detener acciones en curso como una reproducción, lectura, etc."""
         pass  # No hace nada por defecto. Las subclases pueden redefinirlo si lo necesitan.
+
+    def es_cancelacion(self, texto: str) -> bool:
+        """Detecta si el usuario quiere cancelar el comando actual."""
+        return texto.strip().lower() in ["cancelar", "salir", "finalizar", "adiós"]

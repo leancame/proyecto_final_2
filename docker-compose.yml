@@ -12,12 +12,14 @@ services:
       - MYSQL_HOST=mysql_db
       - MYSQL_DATABASE=tareas_db
       - MYSQL_PORT=3306
+      - DISPLAY=${DISPLAY}
     depends_on:
       - mysql_db
     ports:
       - "8000:8000"
     volumes:
       - .:/app
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
 
   mysql_db:
     image: mysql:8.0

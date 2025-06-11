@@ -3,8 +3,9 @@ from datetime import datetime
 
 class ComandoHora(BaseComando):
     def activar(self, comando):
-        # Activa si el comando contiene la palabra "hora"
-        return "hora" in comando.lower()
+        # Activa si el comando contiene la palabra "hora" o la frase "dime la hora"
+        comando_lower = comando.lower()
+        return "hora" in comando_lower or "dime la hora" in comando_lower
 
     def ejecutar(self, comando):
         try:
@@ -26,8 +27,9 @@ class ComandoHora(BaseComando):
    
 class ComandoFecha(BaseComando):
     def activar(self, comando):
-        # Activa si el comando contiene la palabra "fecha"
-        return "fecha" in comando.lower()
+        # Activa si el comando contiene la palabra "fecha" o la frase "dime la fecha"
+        comando_lower = comando.lower()
+        return "fecha" in comando_lower or "dime la fecha" in comando_lower
 
     def ejecutar(self, comando):
         try:

@@ -102,6 +102,10 @@ class AsistenteApp(App):
         self.hilo_asistente.start()
 
     def salir(self, instance):
+        if hasattr(self, 'asistente'):
+            self.asistente.stop()
+        if hasattr(self, 'hilo_asistente') and self.hilo_asistente.is_alive():
+            self.hilo_asistente.join()
         self.stop()
 
 if __name__ == "__main__":

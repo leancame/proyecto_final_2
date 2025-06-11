@@ -52,7 +52,11 @@ class VozSincronizada:
         with sr.Microphone() as source:
             print("🎙️ Escuchando...")
             self.reconocedor.adjust_for_ambient_noise(source)
-            audio = self.reconocedor.listen(source)
+            try:
+                audio = self.reconocedor.listen(source, timeout=2, phrase_time_limit=5)
+            except sr.WaitTimeoutError:
+                print("Tiempo de espera agotado para escuchar.")
+                return None
 
         try:
             texto = self.reconocedor.recognize_google(audio, language="es-ES")

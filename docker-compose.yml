@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: asistente_app
+    restart: always
+    environment:
+      - ENTORNO=docker
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=proyectofinal
+      - MYSQL_HOST=mysql_db
+      - MYSQL_DATABASE=tareas_db
+      - MYSQL_PORT=3306
+    depends_on:
+      - mysql_db
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "proyectofinal"
+      MYSQL_DATABASE: tareas_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:

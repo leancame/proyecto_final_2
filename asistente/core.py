@@ -8,6 +8,7 @@ class AsistenteVirtual:
         self.voz = voz
         self.servicios = servicios
         self.comandos = self._cargar_comandos()
+        self._detener = False
         print("[INFO] Asistente virtual inicializado.")
 
     def _cargar_comandos(self):
@@ -30,7 +31,7 @@ class AsistenteVirtual:
         time.sleep(0.5)
         self.voz.hablar("¿En qué puedo ayudarte hoy?")
 
-        while True:
+        while not self._detener:
             comando = self.voz.escuchar()
             if comando is None:
                 continue
@@ -52,3 +53,6 @@ class AsistenteVirtual:
                 return
 
         self.voz.hablar("Lo siento, no entendí ese comando.")
+
+    def stop(self):
+        self._detener = True

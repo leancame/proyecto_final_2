@@ -18,6 +18,13 @@ Patrón de diseño que encapsula una solicitud como un objeto, permitiendo param
 **Contenerización:**  
 Técnica para empaquetar software con sus dependencias en contenedores, lo que garantiza su ejecución consistente en cualquier entorno.
 
+**Docker Compose:** 
+Permite definir y ejecutar múltiples contenedores Docker usando un archivo docker-compose.yml. Es útil para aplicaciones con varios servicios (como backend, frontend, base de datos, etc.).
+
+**Dockerfile:**
+Un Dockerfile es un archivo de texto que contiene instrucciones para construir una imagen de Docker. Define el entorno que necesita tu aplicación para ejecutarse.
+
+
 **Flujo de la aplicación:**  
 Secuencia de pasos o procesos que sigue una aplicación desde la entrada del usuario hasta la salida o resultado final.
 

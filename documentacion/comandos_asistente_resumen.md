@@ -49,3 +49,7 @@ A continuación se presenta la lista de comandos disponibles en el asistente, ju
 ## 12. Comando IA (Inteligencia Artificial)
 - **Frases de activación:** "modelo", "charlar", "hablar con"
 - **Funcionalidad:** Cambiar entre modelos de IA y conversar con la inteligencia artificial.
+- **Comandos para cambiar modelos:**
+  - "modelo pequeño" o "modelo tiny" para cambiar al modelo TinyModel.
+  - "modelo grande" o "modelo big" para cambiar al modelo BigModel.
+  - "modelo web" o "modelo remoto" para cambiar al modelo WebUIModel.

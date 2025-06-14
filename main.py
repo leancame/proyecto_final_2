@@ -20,7 +20,7 @@ from asistente.voz import VozSincronizada  # NUEVO
 class AsistenteApp(App):
     def build(self):
         self.title = "Asistente Virtual"
-        Window.size = (600, 800)
+        Window.size = (600, 600)
         self.root = BoxLayout(orientation='vertical')
 
         # Imagen

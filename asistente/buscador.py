@@ -7,7 +7,7 @@ import wikipedia
 class Buscador:
     @staticmethod
     def buscar_en_google(query):
-        """Realiza una búsqueda en Google con el texto proporcionado."""
+        """Re aliza una búsqueda en Google con el texto proporcionado."""
         webbrowser.open(f"https://www.google.com/search?q={query}")  # Abre la búsqueda en el navegador
 
     @staticmethod

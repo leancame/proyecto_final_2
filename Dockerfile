@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y \
     xclip \
     xsel \
     libmtdev1 \
+    espeak \
     && rm -rf /var/lib/apt/lists/*
 
 # Establecer directorio de trabajo

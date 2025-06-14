@@ -1,0 +1,59 @@
+# Despliegue con Docker y NVIDIA Container
+
+Este proyecto incluye configuraciones para desplegar la aplicación usando contenedores Docker, incluyendo soporte para GPU con la carpeta `nvidia_container/`.
+
+1. Construir y subir la imagen Docker para `nvidia_container`
+
+Ubícate en la carpeta `nvidia_container/` y ejecuta:
+
+cd nvidia_container
+docker build -t tu_usuario_docker/nvidia_asistente:latest .
+docker push tu_usuario_docker/nvidia_asistente:latest
+
+Reemplaza `tu_usuario_docker` con tu nombre de usuario en Docker Hub o el repositorio que uses.
+
+2. Crear y levantar los contenedores con `docker-compose` en `nvidia_container`
+
+Desde la carpeta `nvidia_container/` ejecuta:
+
+docker-compose up -d
+
+O para construir y levantar en un solo paso:
+
+docker-compose up --build -d
+
+Esto levantará los servicios definidos en `nvidia_container/docker-compose.yml`.
+
+3. Construir y subir la imagen Docker para la aplicación principal
+
+Desde la raíz del proyecto ejecuta:
+
+docker build -t tu_usuario_docker/asistente_app:latest .
+docker push tu_usuario_docker/asistente_app:latest
+
+4. Crear y levantar los contenedores con `docker-compose` en la raíz del proyecto
+
+Desde la raíz del proyecto ejecuta:
+
+docker-compose up -d
+
+O para construir y levantar en un solo paso:
+
+docker-compose up --build -d
+
+Esto levantará los servicios definidos en `docker-compose.yml`, incluyendo la aplicación y la base de datos MySQL.
+
+5. Notas adicionales
+
+- Asegúrate de tener Docker instalado y configurado correctamente.
+- Para detener los contenedores, usa:
+
+docker-compose down
+
+- Para ver los logs de un contenedor:
+
+docker logs -f nombre_contenedor
+
+- Para listar los contenedores activos:
+
+docker ps

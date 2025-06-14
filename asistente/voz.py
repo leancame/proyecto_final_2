@@ -55,10 +55,10 @@ class VozSincronizada:
     def escuchar(self):
         with sr.Microphone() as source:
             print("🎙️ Escuchando...")  # Mensaje en consola indicando que escucha
-            self.reconocedor.adjust_for_ambient_noise(source)  # Ajusta ruido ambiente para mejor reconocimiento
+            self.reconocedor.adjust_for_ambient_noise(source,duration=0.5)  # Ajusta ruido ambiente para mejor reconocimiento
             try:
-                # Escucha audio con timeout de 2 segundos y límite de frase de 5 segundos
-                audio = self.reconocedor.listen(source, timeout=2, phrase_time_limit=5)
+                # Escucha audio con timeout de 4 segundos y límite de frase de 4 segundos
+                audio = self.reconocedor.listen(source, timeout=4, phrase_time_limit=4)
             except sr.WaitTimeoutError:
                 print("Tiempo de espera agotado para escuchar.")  # Timeout si no hay entrada
                 return None  # Retorna None si no detectó nada

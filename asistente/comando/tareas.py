@@ -195,176 +195,307 @@ class ComandoListarTareas(BaseComando):
             self.voz.hablar("Ocurrió un error al listar las tareas.")
             print(f"Error en ComandoListarTareas: {e}")
 
+# Función que convierte un número escrito en texto (como "uno", "dos") a su valor numérico (1, 2, etc.)
+def texto_a_numero(texto):
+    # Diccionario que mapea palabras numéricas en español a sus valores enteros correspondientes
+    numeros = {
+        "uno": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5,
+        "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
+        "once": 11, "doce": 12, "trece": 13, "catorce": 14, "quince": 15,
+        "dieciséis": 16, "dieciseis": 16, "diecisiete": 17, "dieciocho": 18,
+        "diecinueve": 19, "veinte": 20
+    }
+    # Convierte el texto a minúsculas para evitar errores por uso de mayúsculas
+    texto = texto.lower()
+    # Si el texto está compuesto por dígitos (como "12"), lo convierte directamente a entero
+    if texto.isdigit():
+        return int(texto)
+    # Si el texto coincide con una palabra del diccionario, devuelve su valor; si no, devuelve None
+    return numeros.get(texto, None)
 
-# Clase para completar una tarea pendiente
+
+# Clase para manejar el comando de "completar tarea"
 class ComandoCompletarTarea(BaseComando):
-    # Activa el comando si el texto contiene "completar tarea"
-    def activar(self, comando):
-        return "completar tarea" in comando
 
-    # Ejecuta el comando para marcar una tarea como completada
+    # Método que determina si este comando debe activarse en base al texto dado
+    def activar(self, comando):
+        # Retorna True si el texto contiene la frase "completar tarea"
+        return "completar tarea" in comando.lower()
+
+    # Método principal que ejecuta la lógica para completar una tarea
     def ejecutar(self, comando):
         try:
-            # Obtiene la sesión de base de datos
+            # Obtiene una sesión de la base de datos
             session = obtener_sesion()
-            # Consulta todas las tareas no completadas
+            # Consulta todas las tareas que aún no han sido completadas
             tareas = session.query(Tarea).filter_by(completada=False).all()
-            # Si no hay tareas pendientes, informa y termina
+
+            # Si no hay tareas pendientes, se informa al usuario
             if not tareas:
                 self.voz.hablar("No tienes tareas pendientes.")
                 return
 
-            # Busca un número de tarea en el comando (ejemplo: "número 2")
-            match_num = re.search(r"número (\d+)", comando)
-            if not match_num:
-                # Alternativamente busca "completar tarea X"
-                match_num = re.search(r"completar tarea (\d+)", comando)
+            # Convierte el comando a minúsculas para hacer comparaciones sin distinción de mayúsculas
+            comando_lower = comando.lower()
 
+            # Busca un número (como "completar tarea 2") en el texto del comando usando una expresión regular
+            match_num = re.search(r"completar tarea(?: número)? (\d+)", comando_lower)
             if match_num:
-                # Si encontró número, convierte a entero
+                # Si encuentra un número, lo convierte a entero
                 num = int(match_num.group(1))
-                # Verifica que el número esté dentro del rango de tareas
+                # Verifica si el número es válido dentro del rango de tareas
                 if 1 <= num <= len(tareas):
-                    # Marca la tarea correspondiente como completada
+                    # Marca la tarea como completada
                     tarea = tareas[num - 1]
                     tarea.completada = True
+                    # Guarda los cambios en la base de datos
                     session.commit()
                     # Informa al usuario que la tarea fue completada
                     self.voz.hablar(f"Tarea completada: {descripcion_con_fecha(tarea)}")
                 else:
-                    # Si el número no existe, informa al usuario
+                    # Si el número está fuera del rango, informa al usuario
                     self.voz.hablar("No existe esa tarea.")
                 return
 
-            # Si no se especificó número, intenta obtener descripción de la tarea
-            desc = comando.replace("completar tarea", "").replace("número", "").strip()
-            # Si no hay descripción, pregunta al usuario hasta que responda o cancele
-            while not desc:
-                self.voz.hablar("¿Qué tarea quieres completar? Puedes decir el número o la descripción.")
-                desc = self.voz.escuchar()
-                if desc.lower() in ["cancelar", "salir", "finalizar"]:
+            # Si no se detectó un número con regex, se analiza palabra por palabra
+            palabras = comando_lower.split()
+            for palabra in palabras:
+                # Intenta convertir cada palabra a número usando la función definida antes
+                num = texto_a_numero(palabra)
+                if num is not None:
+                    # Si el número es válido, completa la tarea correspondiente
+                    if 1 <= num <= len(tareas):
+                        tarea = tareas[num - 1]
+                        tarea.completada = True
+                        session.commit()
+                        self.voz.hablar(f"Tarea completada: {descripcion_con_fecha(tarea)}")
+                        return
+                    else:
+                        self.voz.hablar("Número fuera de rango.")
+                        return
+
+            # Si aún no se encontró número, se le pide al usuario que especifique la tarea
+            self.voz.hablar("¿Qué tarea quieres completar? Puedes decir el número o la descripción.")
+
+            # Bucle para esperar la respuesta del usuario
+            while True:
+                # Escucha la respuesta por voz
+                respuesta = self.voz.escuchar()
+                print(f"DEBUG: respuesta recibida: '{respuesta}'")
+
+                # Si no se recibe una respuesta clara, se vuelve a pedir
+                if not respuesta:
+                    self.voz.hablar("No entendí. Por favor, repite o di 'cancelar'.")
+                    continue
+
+                # Convierte la respuesta a minúsculas
+                respuesta_lower = respuesta.lower()
+
+                # Si el usuario dice cancelar, se interrumpe el proceso
+                if respuesta_lower in ["cancelar", "salir", "finalizar"]:
                     self.voz.hablar("Operación cancelada.")
                     return
 
-            # Busca tareas que contengan la descripción dada
-            coincidencias = [t for t in tareas if desc.lower() in t.descripcion.lower()]
-            if not coincidencias:
-                # Si no encontró ninguna, informa al usuario
-                self.voz.hablar("No encontré esa tarea.")
-            elif len(coincidencias) == 1:
-                # Si encontró una sola, la marca como completada
-                coincidencias[0].completada = True
-                session.commit()
-                self.voz.hablar(f"Tarea completada: {descripcion_con_fecha(coincidencias[0])}")
-            else:
-                # Si encontró varias, las enumera y pregunta cuál completar
-                self.voz.hablar("Encontré varias tareas similares:")
-                for i, t in enumerate(coincidencias, 1):
-                    self.voz.hablar(f"{i}. {descripcion_con_fecha(t)}")
-                self.voz.hablar("¿Cuál número quieres completar?")
-                respuesta = self.voz.escuchar()
-                if respuesta.lower() in ["cancelar", "salir", "finalizar"]:
-                    self.voz.hablar("Operación cancelada.")
-                    return
-                try:
-                    # Intenta convertir la respuesta a número y marcar la tarea
-                    indice = int(respuesta) - 1
-                    if 0 <= indice < len(coincidencias):
-                        coincidencias[indice].completada = True
+                # Intenta convertir la respuesta a número (primero como texto, luego como dígito)
+                num = texto_a_numero(respuesta_lower)
+                if num is None:
+                    try:
+                        num = int(respuesta_lower)
+                    except:
+                        num = None
+
+                # Si se logró obtener un número válido
+                if num is not None:
+                    if 1 <= num <= len(tareas):
+                        tarea = tareas[num - 1]
+                        tarea.completada = True
                         session.commit()
-                        self.voz.hablar(f"Tarea completada: {descripcion_con_fecha(coincidencias[indice])}")
+                        self.voz.hablar(f"Tarea completada: {descripcion_con_fecha(tarea)}")
+                        return
                     else:
-                        self.voz.hablar("Número inválido.")
-                except ValueError:
-                    self.voz.hablar("No entendí el número.")
+                        self.voz.hablar("Número inválido. Intenta de nuevo o di 'cancelar'.")
+                        continue
+
+                # Si no es número, intenta buscar tareas por coincidencia parcial en la descripción
+                coincidencias = [t for t in tareas if respuesta_lower in t.descripcion.lower()]
+
+                # Si no se encontraron coincidencias, se informa
+                if not coincidencias:
+                    self.voz.hablar("No encontré esa tarea. Intenta con otra descripción o di 'cancelar'.")
+                    continue
+
+                # Si hay una sola coincidencia, se completa directamente
+                if len(coincidencias) == 1:
+                    coincidencias[0].completada = True
+                    session.commit()
+                    self.voz.hablar(f"Tarea completada: {descripcion_con_fecha(coincidencias[0])}")
+                    return
+
+                # Si hay varias coincidencias, se listan al usuario
+                self.voz.hablar("Encontré varias tareas similares:")
+                for i, tarea in enumerate(coincidencias, 1):
+                    self.voz.hablar(f"{i}. {descripcion_con_fecha(tarea)}")
+
+                # Se pide al usuario que indique cuál desea completar
+                self.voz.hablar("¿Cuál número quieres completar?")
+
+                # Segundo bucle para recibir número de selección
+                while True:
+                    respuesta_num = self.voz.escuchar()
+
+                    # Verifica si la respuesta es válida
+                    if not respuesta_num:
+                        self.voz.hablar("No entendí. Por favor, di el número o 'cancelar'.")
+                        continue
+
+                    # Si el usuario dice cancelar, finaliza
+                    if respuesta_num.lower() in ["cancelar", "salir", "finalizar"]:
+                        self.voz.hablar("Operación cancelada.")
+                        return
+
+                    # Intenta convertir la respuesta a número (como palabra o dígito)
+                    num = texto_a_numero(respuesta_num.lower())
+                    if num is None:
+                        try:
+                            num = int(respuesta_num)
+                        except:
+                            self.voz.hablar("No entendí. Por favor, di el número o 'cancelar'.")
+                            continue
+
+                    # Verifica si el número está dentro del rango válido
+                    if 1 <= num <= len(coincidencias):
+                        coincidencias[num - 1].completada = True
+                        session.commit()
+                        self.voz.hablar(f"Tarea completada: {descripcion_con_fecha(coincidencias[num - 1])}")
+                        return
+                    else:
+                        self.voz.hablar("Número inválido. Intenta de nuevo o di 'cancelar'.")
+
+        # Si ocurre algún error en la ejecución, se informa al usuario y se imprime en consola
         except Exception as e:
-            # En caso de error, informa al usuario y muestra el error en consola
             self.voz.hablar("Ocurrió un error al completar la tarea.")
             print(f"Error en ComandoCompletarTarea: {e}")
 
-
-# Clase para eliminar una tarea pendiente
+# Clase que maneja el comando para eliminar o borrar una tarea
 class ComandoEliminarTarea(BaseComando):
-    # Activa el comando si el texto contiene "eliminar tarea" o "borrar tarea"
+
+    # Método que determina si el comando ingresado corresponde a eliminar una tarea
     def activar(self, comando):
+        # Devuelve True si el comando contiene "eliminar tarea" o "borrar tarea"
         return "eliminar tarea" in comando or "borrar tarea" in comando
 
-    # Ejecuta el comando para eliminar una tarea
+    # Método que ejecuta la lógica para eliminar una tarea
     def ejecutar(self, comando):
         try:
-            # Obtiene la sesión de base de datos
+            # Obtiene una sesión de la base de datos
             session = obtener_sesion()
-            # Consulta todas las tareas no completadas
+            # Consulta todas las tareas no completadas (activas)
             tareas = session.query(Tarea).filter_by(completada=False).all()
-            # Si no hay tareas para eliminar, informa y termina
+
+            # Si no hay tareas pendientes, informa al usuario
             if not tareas:
                 self.voz.hablar("No tienes tareas para eliminar.")
                 return
 
-            # Busca un número de tarea en el comando
+            # Intenta extraer un número directamente desde el comando usando regex
             match_num = re.search(r"número (\d+)", comando)
+            # Si no encontró, intenta con otra estructura del comando (ej. "eliminar tarea 2")
             if not match_num:
-                # Alternativamente busca "eliminar tarea X" o "borrar tarea X"
                 match_num = re.search(r"(eliminar|borrar) tarea (\d+)", comando)
 
+            # Inicializa la variable num como None
+            num = None
+
+            # Si encontró un número en el comando
             if match_num:
-                # Obtiene el número según el formato del comando
+                # Dependiendo de qué patrón coincidió, extrae el número del grupo adecuado
                 num = int(match_num.group(1) if "número" in comando else match_num.group(2))
-                # Verifica que el número esté dentro del rango de tareas
+            else:
+                # Si no encontró número con regex, intenta palabra por palabra convertir texto a número
+                for palabra in comando.lower().split():
+                    num = texto_a_numero(palabra)
+                    if num is not None:
+                        break  # Si encuentra uno válido, se detiene
+
+            # Si obtuvo un número
+            if num is not None:
+                # Verifica que el número esté dentro del rango de tareas existentes
                 if 1 <= num <= len(tareas):
-                    # Elimina la tarea correspondiente
+                    # Selecciona la tarea correspondiente
                     tarea = tareas[num - 1]
+                    # Elimina la tarea de la base de datos
                     session.delete(tarea)
+                    # Guarda los cambios
                     session.commit()
                     # Informa al usuario que la tarea fue eliminada
                     self.voz.hablar(f"Tarea eliminada: {descripcion_con_fecha(tarea)}")
                 else:
-                    # Si el número no existe, informa al usuario
+                    # Si el número no corresponde a ninguna tarea, informa
                     self.voz.hablar("No existe esa tarea.")
-                return
+                return  # Sale del método después de eliminar o informar error
 
-            # Si no se especificó número, intenta obtener descripción de la tarea
+            # Si no se encontró número, intenta obtener la descripción
             desc = comando.replace("eliminar tarea", "").replace("borrar tarea", "").replace("número", "").strip()
-            # Si no hay descripción, pregunta al usuario hasta que responda o cancele
+
+            # Si la descripción está vacía, se pregunta al usuario qué tarea eliminar
             while not desc:
                 self.voz.hablar("¿Qué tarea quieres eliminar? Puedes decir el número o la descripción.")
                 desc = self.voz.escuchar()
+                print(f"DEBUG: respuesta recibida: '{desc}'")
+
+                # Si el usuario quiere cancelar, termina el proceso
                 if desc.lower() in ["cancelar", "salir", "finalizar"]:
                     self.voz.hablar("Operación cancelada.")
                     return
 
-            # Busca tareas que contengan la descripción dada
+            # Busca tareas cuya descripción contenga la palabra clave ingresada
             coincidencias = [t for t in tareas if desc.lower() in t.descripcion.lower()]
+
+            # Si no encontró ninguna tarea con esa descripción, informa
             if not coincidencias:
-                # Si no encontró ninguna, informa al usuario
                 self.voz.hablar("No encontré esa tarea.")
+            # Si solo hay una coincidencia, la elimina directamente
             elif len(coincidencias) == 1:
-                # Si encontró una sola, la elimina
                 session.delete(coincidencias[0])
                 session.commit()
                 self.voz.hablar(f"Tarea eliminada: {descripcion_con_fecha(coincidencias[0])}")
             else:
-                # Si encontró varias, las enumera y pregunta cuál eliminar
+                # Si hay varias coincidencias, las enumera para que el usuario elija
                 self.voz.hablar("Encontré varias tareas similares:")
                 for i, t in enumerate(coincidencias, 1):
                     self.voz.hablar(f"{i}. {descripcion_con_fecha(t)}")
+
+                # Pide al usuario que indique cuál tarea quiere eliminar
                 self.voz.hablar("¿Cuál número quieres eliminar?")
                 respuesta = self.voz.escuchar()
+
+                # Si el usuario cancela, termina la operación
                 if respuesta.lower() in ["cancelar", "salir", "finalizar"]:
                     self.voz.hablar("Operación cancelada.")
                     return
-                try:
-                    # Intenta convertir la respuesta a número y eliminar la tarea
-                    indice = int(respuesta) - 1
-                    if 0 <= indice < len(coincidencias):
-                        session.delete(coincidencias[indice])
-                        session.commit()
-                        self.voz.hablar(f"Tarea eliminada: {descripcion_con_fecha(coincidencias[indice])}")
-                    else:
-                        self.voz.hablar("Número inválido.")
-                except ValueError:
-                    self.voz.hablar("No entendí el número.")
+
+                # Intenta convertir la respuesta del usuario a número
+                num_resp = texto_a_numero(respuesta)
+                if num_resp is None:
+                    try:
+                        num_resp = int(respuesta)
+                    except ValueError:
+                        self.voz.hablar("No entendí el número.")
+                        return
+
+                # Convierte a índice (base cero)
+                indice = num_resp - 1
+
+                # Verifica si el número corresponde a una coincidencia válida
+                if 0 <= indice < len(coincidencias):
+                    # Elimina la tarea seleccionada
+                    session.delete(coincidencias[indice])
+                    session.commit()
+                    self.voz.hablar(f"Tarea eliminada: {descripcion_con_fecha(coincidencias[indice])}")
+                else:
+                    # Si el número está fuera de rango, informa
+                    self.voz.hablar("Número inválido.")
         except Exception as e:
-            # En caso de error, informa al usuario y muestra el error en consola
+            # Captura cualquier error y lo informa al usuario
             self.voz.hablar("Ocurrió un error al eliminar la tarea.")
             print(f"Error en ComandoEliminarTarea: {e}")

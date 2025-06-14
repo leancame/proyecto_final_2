@@ -24,7 +24,6 @@ Permite definir y ejecutar múltiples contenedores Docker usando un archivo dock
 **Dockerfile:**
 Un Dockerfile es un archivo de texto que contiene instrucciones para construir una imagen de Docker. Define el entorno que necesita tu aplicación para ejecutarse.
 
-
 **Flujo de la aplicación:**  
 Secuencia de pasos o procesos que sigue una aplicación desde la entrada del usuario hasta la salida o resultado final.
 

@@ -25,12 +25,20 @@ class Tarea(Base):
 
 # Función para obtener una sesión de conexión a la base de datos
 def obtener_sesion():
+    from sqlalchemy import text
+    from sqlalchemy.exc import SQLAlchemyError
     try:
-        # Crea el motor de conexión a la base de datos MySQL con mysqlconnector
+        # Primero, crear un engine sin base de datos para crear la base de datos si no existe
+        engine_sin_db = create_engine('mysql+mysqlconnector://root:@localhost/')
+        with engine_sin_db.connect() as conn:
+            conn.execute(text("CREATE DATABASE IF NOT EXISTS tareas_db"))
+        engine_sin_db.dispose()
+
+        # Ahora crear el engine con la base de datos ya creada
         engine = create_engine('mysql+mysqlconnector://root:@localhost/tareas_db')
         Base.metadata.create_all(engine)  # Crea las tablas en la base de datos si no existen
         Session = sessionmaker(bind=engine)  # Crea la clase para sesiones vinculada al motor
         return Session()  # Devuelve una instancia de sesión para operar con la BD
-    except Exception as e:
+    except SQLAlchemyError as e:
         # Si ocurre un error, lanza un RuntimeError con el mensaje correspondiente
         raise RuntimeError(f"Error al conectar a la base de datos: {e}")
